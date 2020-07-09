@@ -1,12 +1,12 @@
-
+import pickle
 from PIL import Image
 import cv2
 import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
-# % matplotlib inline
-import os
+## % matplotlib inline
 
+import os
 import torch
 
 from utils.openpose_net import OpenPoseNet
@@ -37,8 +37,7 @@ net.load_state_dict(state)
 print('ネットワーク設定完了：学習済みの重みをロードしました')
 
 ###########################################################
-
-# test_image = './data/img10_517.jpg'
+joint_lists = {}
 path = './data/'
 files = os.listdir(path)
 for file in files:
@@ -53,7 +52,6 @@ for file in files:
     # 画像のリサイズ
     size = (368, 368)
     img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
-
 
     # 画像の前処理
     img = img.astype(np.float32) / 255.
@@ -89,17 +87,25 @@ for file in files:
     pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
     heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
 
+
     pafs = cv2.resize(
         pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
     heatmaps = cv2.resize(
         heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
 
     ########################################################################
-
-    _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
+    #joint_listがそれぞれの関節:joint_list.shape=(検出できた関節数,5)
+    _, result_img, joint_list, person_to_joint_assoc = decode_pose(oriImg, heatmaps, pafs)
     # 結果を描画
 
-    plt.imshow(result_img)
-    plt.imsave('./op_data/' + file, result_img)
+    # result_img = cv2.resize(result_img, (224,224), interpolation=cv2.INTER_CUBIC)
+    # plt.imshow(result_img)
+    # plt.imsave('./op_data/' + file, result_img)
+    joint_lists[file] = joint_list
+
+with open("joint_lists.pkl","wb") as f:
+    pickle.dump(joint_lists, f)
+
+
 
 
