@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import os
 
-あああああああ
 import argparse
 
 if __name__ == '__main__':
