@@ -10,10 +10,12 @@ import os
 
 import argparse
 
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--split', default=1)
-    parser.add_argument('--iteration', default=2000)
+    parser.add_argument('--iteration', default=8000)
     parser.add_argument('--it_save', default=100)
     parser.add_argument('--batch_size', default=8)
     parser.add_argument('--seq_length', default=300) 

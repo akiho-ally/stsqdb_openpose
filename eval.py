@@ -117,8 +117,9 @@ if __name__ == '__main__':
 
     
     ####################################################################
+    print(confusion_matrix)
     fig, ax = plt.subplots(1,1,figsize=(8,6))
-    ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=100, cmap=plt.get_cmap('Blues'))
+    ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=10000, cmap=plt.get_cmap('Blues'))
     if args.use_no_element == False:
         plt.ylabel('Actual Category')
         plt.yticks(range(12), element_names)
@@ -126,7 +127,7 @@ if __name__ == '__main__':
         plt.xticks(range(12), element_names)
 
         save_dir = '/home/akiho/projects/StSqDB/'
-        plt.savefig(save_dir + 'figure_12.png')
+        plt.savefig(save_dir + 'op_figure_12.png')
 
     else:
         plt.ylabel('Actual Category')
@@ -135,4 +136,4 @@ if __name__ == '__main__':
         plt.xticks(range(13), element_names)      
 
         save_dir = '/home/akiho/projects/StSqDB/'
-        plt.savefig(save_dir + 'figure_13.png')
+        plt.savefig(save_dir + 'op_figure_13.png')
