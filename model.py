@@ -5,7 +5,7 @@ from MobileNetV2 import MobileNetV2
 
 
 class EventDetector(nn.Module):
-    def __init__(self, pretrain, width_mult, lstm_layers, lstm_hidden, device, bidirectional=True, dropout=True):
+    def __init__(self, pretrain, width_mult, lstm_layers, lstm_hidden, device, use_no_element, bidirectional=True, dropout=True):
         super(EventDetector, self).__init__()
         self.width_mult = width_mult
         self.lstm_layers = lstm_layers
@@ -13,6 +13,7 @@ class EventDetector(nn.Module):
         self.bidirectional = bidirectional
         self.dropout = dropout
         self.device = device
+        self.use_no_element = use_no_element
 
         net = MobileNetV2(width_mult=width_mult)
         state_dict_mobilenet = torch.load('mobilenet_v2.pth.tar')
@@ -24,10 +25,18 @@ class EventDetector(nn.Module):
         self.rnn = nn.LSTM(int(1280*width_mult if width_mult > 1.0 else 1280),
                            self.lstm_hidden, self.lstm_layers,
                            batch_first=True, bidirectional=bidirectional)
-        if self.bidirectional:
-            self.lin = nn.Linear(2*self.lstm_hidden, 13)
+        if self.use_no_element == False:
+            if self.bidirectional:
+                self.lin = nn.Linear(2*self.lstm_hidden, 12)
+            else:
+                self.lin = nn.Linear(self.lstm_hidden, 12)
         else:
-            self.lin = nn.Linear(self.lstm_hidden, 13)
+            if self.bidirectional:
+                self.lin = nn.Linear(2*self.lstm_hidden, 13)
+            else:
+                self.lin = nn.Linear(self.lstm_hidden, 13)
+
+
         if self.dropout:
             self.drop = nn.Dropout(0.5)
 
@@ -55,6 +64,9 @@ class EventDetector(nn.Module):
         r_out, states = self.rnn(r_in, self.hidden)
         out = self.lin(r_out)
         # out.shape => torch.Size([1, 300, 13])
-        out = out.view(batch_size*timesteps, 13)
+        if self.use_no_element == False:
+            out = out.view(batch_size*timesteps, 12)
+        else:
+            out = out.view(batch_size*timesteps, 13)
         # out.shape => torch.Size([300, 13])
         return out

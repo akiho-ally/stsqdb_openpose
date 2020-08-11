@@ -18,7 +18,10 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def correct_preds(probs, labels, tol=-1):
+
+
+
+def correct_preds(probs, labels, use_no_element, tol=-1):
 
 
     # events, _  = np.where(labels < 13)
@@ -46,11 +49,19 @@ def correct_preds(probs, labels, tol=-1):
 
     preds = np.zeros(len(labels))
     correct = []
-    each_element_sum = np.zeros(13)
-    each_element_preds = np.zeros(13)
+    if use_no_element == False:
+        each_element_sum = np.zeros(12)
+        each_element_preds = np.zeros(12)
+        confusion_matrix = np.zeros([12,12], int)
+    else:
+        each_element_sum = np.zeros(13)
+        each_element_preds = np.zeros(13) 
+        confusion_matrix = np.zeros([13,13], int)
 
     for i in range(len(labels)):
-        preds[i] = np.argsort(probs[i,:])[-1] 
+        preds[i] = np.argsort(probs[i,:])[-1]
+        confusion_matrix[labels[i].item(), int(preds[i].item())] += 1
+ 
 
     for i in range(len(labels)):
         if labels[i] == preds[i]:
@@ -65,7 +76,7 @@ def correct_preds(probs, labels, tol=-1):
             each_element_preds[int(label_id)] += 1
 
         
-    return preds, correct , each_element_preds, each_element_sum
+    return preds, correct , each_element_preds, each_element_sum, confusion_matrix
 
 
 def freeze_layers(num_freeze, net):
