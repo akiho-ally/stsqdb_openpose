@@ -41,8 +41,11 @@ print('ネットワーク設定完了：学習済みの重みをロードしま�
 ###########################################################
 with open("annotationed_movie.pkl", "rb") as annotationed_movie:
     movie_dic = pickle.load(annotationed_movie)
+
+
 joint_lists = {}
 for mid, frames in movie_dic.items(): 
+    split_id = np.random.randint(1, 5)
     for frame in frames:
         filename = frame[0]
         label_id = frame[1]
@@ -106,7 +109,9 @@ for mid, frames in movie_dic.items():
         if joint_list.ndim == 1:
             continue
         else:
+            # joint_num = person_to_joint_assoc[0,19]  ##検出できた関節の数
             joint_list = np.delete(joint_list, 2 , 1)  ##確率をカット
+
 
         '''
         array([[681., 326.,   0.,   0.],
@@ -133,11 +138,33 @@ for mid, frames in movie_dic.items():
         12.        , 13.        , 14.        , 15.        , 16.        ,
         -1.        , 17.        , 18.        , 16.74321419, 15.        ]])
         '''
-        joint_lists[mid] = [(filename, label_id, joint_list)]
+        joint_lists[mid] = [(filename, label_id, joint_list, split_id)]
     print('movie' + str(mid))
 
-with open("joint_lists.pkl","wb") as f:
-    pickle.dump(joint_lists, f)
+
+if not os.path.exists('data/coordinates'):
+        os.mkdir('data/coordinates')
+
+
+for i in range(1, 5):  
+    images = []
+    labels = []
+    val_split = []
+    train_split = []
+
+    for movie_data in joint_list:
+        if movie_data[3] == i:
+            val_split.append((movie_data[0], movie_data[1], movie_data[2]))
+        else:
+            train_split.append((movie_data[0], movie_data[1], movie_data[2]))
+    # TODO: movieをシャッフル
+
+    with open("data/coordinates/val_split_{:1d}.pkl".format(i), "wb") as f:
+        pickle.dump(val_split, f)
+    with open("data/coordinates/train_split_{:1d}.pkl".format(i), "wb") as f:
+        pickle.dump(train_split, f)
+    print("finish {}".format(i))
+
 
 ###########################################################
 # joint_lists = {}
