@@ -21,7 +21,7 @@ class AverageMeter(object):
 
 
 
-def correct_preds(probs, labels, tol=-1, use_no_element=False):
+def correct_preds(probs, labels, use_no_element, tol=-1):
 
 
     # events, _  = np.where(labels < 13)

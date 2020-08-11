@@ -163,6 +163,7 @@ def NMS(param, heatmaps, upsampFactor=1., bool_refine_center=True, bool_gaussian
             peaks[i, :] = tuple([int(round(x)) for x in compute_resized_coords(
                 peak_coords[i], upsampFactor) + refined_center[::-1]]) + (peak_score, cnt_total_joints)
             cnt_total_joints += 1
+
         joint_list_per_joint_type.append(peaks)
 
     return joint_list_per_joint_type
@@ -418,21 +419,25 @@ def decode_pose(img_orig, heatmaps, pafs):
     # Bottom-up approach:
     # Step 1: find all joints in the image (organized by joint type: [0]=nose,
     # [1]=neck...)
+    #関節の検索
     joint_list_per_joint_type = NMS(param,
                                     heatmaps, img_orig.shape[0] / float(heatmaps.shape[0]))
     # joint_list is an unravel'd version of joint_list_per_joint, where we add
     # a 5th column to indicate the joint_type (0=nose, 1=neck...)
+    #関節の検索、改善版
     joint_list = np.array([tuple(peak) + (joint_type,) for joint_type,
                            joint_peaks in enumerate(joint_list_per_joint_type) for peak in joint_peaks])
 
     # Step 2: find which joints go together to form limbs (which wrists go
     # with which elbows)
+    #手足の形成（右同士左同士）
     paf_upsamp = cv2.resize(
         pafs, (img_orig.shape[1], img_orig.shape[0]), interpolation=cv2.INTER_CUBIC)
     connected_limbs = find_connected_joints(param,
                                             paf_upsamp, joint_list_per_joint_type)
 
     # Step 3: associate limbs that belong to the same person
+    #同じ人に属する手足を関連付ける
     person_to_joint_assoc = group_limbs_of_same_person(
         connected_limbs, joint_list)
 
