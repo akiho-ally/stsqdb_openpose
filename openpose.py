@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import os
 import torch
 
-あああああああああ
 
 from utils.openpose_net import OpenPoseNet
 from utils.decode_pose import decode_pose
