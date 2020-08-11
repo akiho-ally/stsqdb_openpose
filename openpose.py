@@ -42,8 +42,8 @@ print('ネットワーク設定完了：学習済みの重みをロードしま�
 with open("annotationed_movie.pkl", "rb") as annotationed_movie:
     movie_dic = pickle.load(annotationed_movie)
 
-
-joint_lists = {}
+# joint_lists = {}
+person_joints = []
 for mid, frames in movie_dic.items(): 
     split_id = np.random.randint(1, 5)
     for frame in frames:
@@ -109,8 +109,15 @@ for mid, frames in movie_dic.items():
         if joint_list.ndim == 1:
             continue
         else:
-            # joint_num = person_to_joint_assoc[0,19]  ##検出できた関節の数
-            joint_list = np.delete(joint_list, 2 , 1)  ##確率をカット
+            one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19], 1) ##一人の関節（joint_listのindexが並んでる）
+            joint_list = np.delete(joint_list, [2:4] , 1)  ##全ての関節の座標のみのリスト
+
+            for i in range(18):
+                if one_person_to_joint_index[i] == -1:
+                    each_joint_coordinate = [0,0]  ##??検出できなかった関節の座標はどうしましょう？？
+                else:
+                    each_joint_coordinate = joint_list[one_person_to_joint_index[i]] ##[indexで座標を取得]
+                person_joints.append(filename, label_id, each_joint_coordinate, split_id)
 
 
         '''
@@ -138,7 +145,7 @@ for mid, frames in movie_dic.items():
         12.        , 13.        , 14.        , 15.        , 16.        ,
         -1.        , 17.        , 18.        , 16.74321419, 15.        ]])
         '''
-        joint_lists[mid] = [(filename, label_id, joint_list, split_id)]
+        # joint_lists[mid] = [(filename, label_id, person_joint, split_id)]
     print('movie' + str(mid))
 
 
@@ -152,9 +159,9 @@ for i in range(1, 5):
     val_split = []
     train_split = []
 
-    for movie_data in joint_list:
+    for movie_data in person_joints:
         if movie_data[3] == i:
-            val_split.append((movie_data[0], movie_data[1], movie_data[2]))
+            val_split.append((movie_data[0], movie_data[1], movie_data[2]))  ##(filename, label_id, [座標])
         else:
             train_split.append((movie_data[0], movie_data[1], movie_data[2]))
     # TODO: movieをシャッフル
