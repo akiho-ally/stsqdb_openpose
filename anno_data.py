@@ -34,7 +34,7 @@ with open("anno_data.pkl", "wb") as anno_data:
 
 
 ## ここから下は別ファイルに切り取ってもいいかもしれない
-# TODO: filepathを見て、fire_dictの中身を動画ごとに分割
+
 movie_dic = {}
 # 
 # ↓
@@ -64,10 +64,10 @@ with open("annotationed_movie.pkl", "wb") as annotationed_movie:
 # pd.to_pickle(movie_dic, "annotationed_movie.pkl")
 # hoge2 = pd.read_pickle("annotationed_movie.pkl") 
 #print(hoge2)
-# TODO: bounding box, player等補助情報が増えた場合はdfを作成。それに伴いdataloader.pyも変更
 
 
-# # TODO: dataloaderの形に合わせて保存
+
+
 # # movie_dict = {0: [(filename, label_id, frame_id), (), (), ]}
 # # ↓
 # # data = [ [[[]], [[]]] , [1,2, 4,0, ],   [[[]], [[]]] , [1,2, 4,0, ],   [[[]], [[]]] , [1,2, 4,0, ] ....  ] 
@@ -82,7 +82,7 @@ with open("annotationed_movie.pkl", "wb") as annotationed_movie:
 #         label_id = frame[1]
 
 #         filepath = "data/videos_40/img" +str( mid )+ '/' + filename
-#         img = np.array(Image.open(filepath)) # TODO: filenameから画像データの値を呼び出し
+#         img = np.array(Image.open(filepath)) 
 #         img_resize = img.resize((224, 224))
 #         images.append(img)
 #         labels.append(label_id)

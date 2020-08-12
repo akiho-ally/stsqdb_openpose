@@ -166,7 +166,7 @@ for i in range(1, 5):
             val_split.append((movie_data[0], movie_data[1], movie_data[2]))  ##(filename, label_id, [座標])
         else:
             train_split.append((movie_data[0], movie_data[1], movie_data[2]))
-    # TODO: movieをシャッフル
+
 
     with open("data/coordinates/val_split_{:1d}.pkl".format(i), "wb") as f:
         pickle.dump(val_split, f)

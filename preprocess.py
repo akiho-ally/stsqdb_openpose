@@ -109,7 +109,7 @@ def main():
 
 
 
-        # TODO: 系列長について、padding or 長い動画の分割
+
             # data.append((split_images, split_labels, split_id))  
         print('movie {}  len(data) = {} '.format(mid, len(data)) )
 
@@ -133,7 +133,7 @@ def main():
                 val_split.append((movie_data[0], movie_data[1]))
             else:
                 train_split.append((movie_data[0], movie_data[1]))
-        # TODO: movieをシャッフル
+
   
         with open("data/seq_length_{}/val_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
             pickle.dump(val_split, f)
@@ -143,7 +143,6 @@ def main():
 
     print(data[0])
     
-    # TODO: dataset 情報を表示
 
 
 if __name__ == "__main__":

@@ -66,7 +66,6 @@ if __name__ == '__main__':
     print('Loading Data')
 
 
-    # TODO: vid_dirのpathをかえる。stsqの動画を切り出したimage全部が含まれているdirにする
     if use_no_element == False:
         dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
                         vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
@@ -96,7 +95,7 @@ if __name__ == '__main__':
 
     # the 8 golf swing events are classes 0 through 7, no-event is class 8
     # the ratio of events to no-events is approximately 1:35 so weight classes accordingly:
-    # TODO: edit weights shape from golf-8-element to stsq-12-element
+
     if use_no_element == False:
         weights = torch.FloatTensor([1/3, 1, 2/5, 1/3, 1/6, 1, 1/4, 1, 1/4, 1/3, 1/2, 1/6]).to(device)
     else:

@@ -284,7 +284,7 @@ def main():
                 val_split.append((movie_data[0], movie_data[1]))
             else:
                 train_split.append((movie_data[0], movie_data[1]))
-        # TODO: movieをシャッフル
+
 
         with open("data/seq_length_{}/val_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
             pickle.dump(val_split, f)
