@@ -50,27 +50,27 @@ class EventDetector(nn.Module):
             
 
     def forward(self, x, lengths=None):
-        # TODO : xが何を表しているか確認
-        batch_size, timesteps, C, H, W = x.size()
+        # TODO : 55行目追加
+        # batch_size, timesteps, C, H, W = x.size()  ##torch.Size([8, 300, 3, 224, 224])
+        batch_size, timesteps, coordinate = x.size()
         self.hidden = self.init_hidden(batch_size)
 
-        # TODO : 58~63をコメント
-        # CNN forward
-        c_in = x.view(batch_size * timesteps, C, H, W)
-        c_out = self.cnn(c_in)
-        c_out = c_out.mean(3).mean(2)
-        if self.dropout:
-            c_out = self.drop(c_out)
+        # # CNN forward
+        # c_in = x.view(batch_size * timesteps, C, H, W)  ##torch.Size([2400, 3, 224, 224])
+        # c_out = self.cnn(c_in)
+        # c_out = c_out.mean(3).mean(2)  ##torch.Size([2400, 1280])  ##Global average pooling
+        # if self.dropout:
+        #     c_out = self.drop(c_out)
 
         # TODO : c.outを座標データに変えるはず
         # LSTM forward
-        r_in = c_out.view(batch_size, timesteps, -1)
-        r_out, states = self.rnn(r_in, self.hidden)
-        out = self.lin(r_out)
-        # out.shape => torch.Size([1, 300, 13])
+        r_in = c_out.view(batch_size, timesteps, -1)  ##torch.Size([8, 300, 1280])
+        r_out, states = self.rnn(r_in, self.hidden)   ##r_out:torch.Size([8, 300, 512]),  len(states)=2
+        out = self.lin(r_out)  ##torch.Size([8, 300, 12])
+
         if self.use_no_element == False:
             out = out.view(batch_size*timesteps, 12)
         else:
             out = out.view(batch_size*timesteps, 13)
-        # out.shape => torch.Size([300, 13])
+        # out.shape => torch.Size([2400, 13])
         return out
