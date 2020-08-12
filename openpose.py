@@ -106,45 +106,47 @@ for mid, frames in movie_dic.items():
         #person_to_joint_assocが各個人の関節:[0~17はjoint_listのindex番号, スコア, 検出できた関節の数]
         _, result_img, joint_list, person_to_joint_assoc = decode_pose(oriImg, heatmaps, pafs)
 
-        if joint_list.ndim == 1:
+        if joint_list.ndim or person_to_joint_assoc.ndim == 1:
             continue
         else:
-            one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19], 1) ##一人の関節（joint_listのindexが並んでる）
-            joint_list = np.delete(joint_list, [2:4] , 1)  ##全ての関節の座標のみのリスト
+            one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19]) ##一人の関節（joint_listのindexが並んでる）
+            joint_list = np.delete(joint_list, [2,3,4] , 1)  ##全ての関節の座標のみのリスト
 
-            for i in range(18):
+
+            for i, v in enumerate(one_person_to_joint_index):
                 if one_person_to_joint_index[i] == -1:
                     each_joint_coordinate = [0,0]  ##??検出できなかった関節の座標はどうしましょう？？
                 else:
-                    each_joint_coordinate = joint_list[one_person_to_joint_index[i]] ##[indexで座標を取得]
-                person_joints.append(filename, label_id, each_joint_coordinate, split_id)
+                    each_joint_coordinate = joint_list[int(v)] ##[indexで座標を取得]
+                    each_joint_coordinate = each_joint_coordinate.tolist()
+                person_joints.append((filename, label_id, each_joint_coordinate, split_id))
 
 
-        '''
-        array([[681., 326.,   0.,   0.],
-            [628., 346.,   1.,   1.],
-            [644., 349.,   2.,   2.],
-            [669., 297.,   3.,   3.],
-            [630., 410.,   4.,   3.],
-            [671., 284.,   5.,   4.],
-            [676., 445.,   6.,   4.],
-            [608., 344.,   7.,   5.],
-            [654., 305.,   8.,   6.],
-            [592., 423.,   9.,   8.],
-            [631., 476.,  10.,   9.],
-            [631., 476.,  11.,   9.],
-            [604., 535.,  12.,  10.],
-            [566., 422.,  13.,  11.],
-            [632., 472.,  14.,  12.],
-            [625., 536.,  15.,  13.],
-            [681., 320.,  16.,  14.],
-            [655., 318.,  17.,  16.],
-            [625., 314.,  18.,  17.]])
-        array([[ 0.        ,  1.        ,  2.        ,  4.        ,  6.        ,
-         7.        , -1.        , -1.        ,  9.        , 10.        ,
-        12.        , 13.        , 14.        , 15.        , 16.        ,
-        -1.        , 17.        , 18.        , 16.74321419, 15.        ]])
-        '''
+        # '''
+        # array([[681., 326.,   0.,   0.],
+        #     [628., 346.,   1.,   1.],
+        #     [644., 349.,   2.,   2.],
+        #     [669., 297.,   3.,   3.],
+        #     [630., 410.,   4.,   3.],
+        #     [671., 284.,   5.,   4.],
+        #     [676., 445.,   6.,   4.],
+        #     [608., 344.,   7.,   5.],
+        #     [654., 305.,   8.,   6.],
+        #     [592., 423.,   9.,   8.],
+        #     [631., 476.,  10.,   9.],
+        #     [631., 476.,  11.,   9.],
+        #     [604., 535.,  12.,  10.],
+        #     [566., 422.,  13.,  11.],
+        #     [632., 472.,  14.,  12.],
+        #     [625., 536.,  15.,  13.],
+        #     [681., 320.,  16.,  14.],
+        #     [655., 318.,  17.,  16.],
+        #     [625., 314.,  18.,  17.]])
+        # array([[ 0.        ,  1.        ,  2.        ,  4.        ,  6.        ,
+        #  7.        , -1.        , -1.        ,  9.        , 10.        ,
+        # 12.        , 13.        , 14.        , 15.        , 16.        ,
+        # -1.        , 17.        , 18.        , 16.74321419, 15.        ]])
+        # '''
         # joint_lists[mid] = [(filename, label_id, person_joint, split_id)]
     print('movie' + str(mid))
 
