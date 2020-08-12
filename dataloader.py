@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
-#TODO:  StsqDBを作る
+
 class StsqDB(Dataset):
     def __init__(self, data_file, vid_dir, seq_length, transform=None, train=True):
         # self.df = pd.read_pickle(data_file)
@@ -43,10 +43,11 @@ class StsqDB(Dataset):
         # pklファイルからimg, labelを読み込む
         with open(self.data_file, "rb") as f:  
             data = pickle.load(f)
-        # images = [ pair[0] for pair in data ]  ##len(images)=300
-        # labels = [ pair[1] for pair in data ] 
-        images = [ pair[2] for pair in data ]  ##len(images)=300  ##images = 座標
+        images = [ pair[0] for pair in data ]  ##len(images)=300
         labels = [ pair[1] for pair in data ] 
+        # TODO: 下のやつに変換
+        # images = [ pair[2] for pair in data ]  ##len(images)=300  ##images = 座標
+        # labels = [ pair[1] for pair in data ] 
         return images, labels 
 
 

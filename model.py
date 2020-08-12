@@ -15,6 +15,7 @@ class EventDetector(nn.Module):
         self.device = device
         self.use_no_element = use_no_element
 
+        # TODO : 19~25をコメント
         net = MobileNetV2(width_mult=width_mult)
         state_dict_mobilenet = torch.load('mobilenet_v2.pth.tar')
         if pretrain:
@@ -49,9 +50,11 @@ class EventDetector(nn.Module):
             
 
     def forward(self, x, lengths=None):
+        # TODO : xが何を表しているか確認
         batch_size, timesteps, C, H, W = x.size()
         self.hidden = self.init_hidden(batch_size)
 
+        # TODO : 58~63をコメント
         # CNN forward
         c_in = x.view(batch_size * timesteps, C, H, W)
         c_out = self.cnn(c_in)
@@ -59,6 +62,7 @@ class EventDetector(nn.Module):
         if self.dropout:
             c_out = self.drop(c_out)
 
+        # TODO : c.outを座標データに変えるはず
         # LSTM forward
         r_in = c_out.view(batch_size, timesteps, -1)
         r_out, states = self.rnn(r_in, self.hidden)

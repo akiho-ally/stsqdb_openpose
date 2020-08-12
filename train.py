@@ -131,7 +131,7 @@ if __name__ == '__main__':
             epoch += 1
             if epoch % it_save == 0:
                 torch.save({'optimizer_state_dict': optimizer.state_dict(),
-                            'model_state_dict': model.state_dict()}, 'models/swingnet_{}.pth.tar'.format(epoch))
+                            'model_state_dict': model.state_dict()}, 'models/coordinates/swingnet_{}.pth.tar'.format(epoch))
             if epoch == iterations:
                 break
 

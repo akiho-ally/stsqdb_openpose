@@ -97,7 +97,7 @@ if __name__ == '__main__':
                           dropout=False,
                           use_no_element=use_no_element)
 
-    save_dict = torch.load('models/swingnet_{}.pth.tar'.format(args.model_num))
+    save_dict = torch.load('models/coordinates/swingnet_{}.pth.tar'.format(args.model_num))
     model.load_state_dict(save_dict['model_state_dict'])
     model.to(device)
     model.eval()
