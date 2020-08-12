@@ -68,14 +68,14 @@ if __name__ == '__main__':
 
     # TODO: vid_dirのpathをかえる。stsqの動画を切り出したimage全部が含まれているdirにする
     if use_no_element == False:
-        dataset = StsqDB(data_file='data/no_ele/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
+        dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
                         vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
                         seq_length=int(seq_length),
                         transform=transforms.Compose([ToTensor(),
                                                     Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                         train=True)
     else:
-        dataset = StsqDB(data_file='data/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
+        dataset = StsqDB(data_file='data/coordinates/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
                     vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
                     seq_length=int(seq_length),
                     transform=transforms.Compose([ToTensor(),
@@ -108,8 +108,8 @@ if __name__ == '__main__':
     losses = AverageMeter()
     #print('utils.py, class AverageMeter()')
 
-    if not os.path.exists('models'):
-        os.mkdir('models')
+    if not os.path.exists('models/coordinates'):
+        os.mkdir('models/coordinates')
 
 
 
