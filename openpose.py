@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
 ## % matplotlib inline
-
+import argparse
 import os
 import torch
 
@@ -13,167 +13,200 @@ import torch
 from utils.openpose_net import OpenPoseNet
 from utils.decode_pose import decode_pose
 
-# 学習済みモデルと本章のモデルでネットワークの層の名前が違うので、対応させてロードする
-# モデルの定義
-net = OpenPoseNet()
+def main():
 
-# 学習済みパラメータをロードする
-net_weights = torch.load(
-    './weights/pose_model_scratch.pth', map_location={'cuda:0': 'cpu'})
-keys = list(net_weights.keys())
+    # 学習済みモデルと本章のモデルでネットワークの層の名前が違うので、対応させてロードする
+    # モデルの定義
+    net = OpenPoseNet()
 
-weights_load = {}
+    # 学習済みパラメータをロードする
+    net_weights = torch.load(
+        './weights/pose_model_scratch.pth', map_location={'cuda:0': 'cpu'})
+    keys = list(net_weights.keys())
 
-# ロードした内容を、本書で構築したモデルの
-# パラメータ名net.state_dict().keys()にコピーする
-for i in range(len(keys)):
-    weights_load[list(net.state_dict().keys())[i]
-                 ] = net_weights[list(keys)[i]]
+    weights_load = {}
 
-# コピーした内容をモデルに与える
-state = net.state_dict()
-state.update(weights_load)
-net.load_state_dict(state)
+    # ロードした内容を、本書で構築したモデルの
+    # パラメータ名net.state_dict().keys()にコピーする
+    for i in range(len(keys)):
+        weights_load[list(net.state_dict().keys())[i]
+                    ] = net_weights[list(keys)[i]]
 
-print('ネットワーク設定完了：学習済みの重みをロードしました')
+    # コピーした内容をモデルに与える
+    state = net.state_dict()
+    state.update(weights_load)
+    net.load_state_dict(state)
 
-
-###########################################################
-with open("annotationed_movie.pkl", "rb") as annotationed_movie:
-    movie_dic = pickle.load(annotationed_movie)
-
-# joint_lists = {}
-person_joints = []
-for mid, frames in movie_dic.items(): 
-    split_id = np.random.randint(1, 5)
-    for frame in frames:
-        filename = frame[0]
-        label_id = frame[1]
-        filepath = "/home/akiho/projects/golfdb/data/videos_40/img" +str( mid )+ '/' + filename
-        oriImg = cv2.imread(filepath)  # B,G,Rの順番
-
-        # BGRをRGBにして表示
-        oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
-        plt.imshow(oriImg)
-        # plt.show()
-
-        # 画像のリサイズ
-        size = (368, 368)
-        img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
-
-        # 画像の前処理
-        img = img.astype(np.float32) / 255.
-
-        # 色情報の標準化
-        color_mean = [0.485, 0.456, 0.406]
-        color_std = [0.229, 0.224, 0.225]
-
-        preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
-
-        for i in range(3):
-            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
-            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
-
-        # （高さ、幅、色）→（色、高さ、幅）
-        img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
-
-        # 画像をTensorに
-        img = torch.from_numpy(img)
-
-        # ミニバッチ化：torch.Size([1, 3, 368, 368])
-        x = img.unsqueeze(0)
-
-        #######################################################################
-
-        net.eval()
-        predicted_outputs, _ = net(x)
-
-        # 画像をテンソルからNumPyに変化し、サイズを戻します
-        pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
-        heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
-
-        pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
-        heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+    print('ネットワーク設定完了：学習済みの重みをロードしました')
 
 
-        pafs = cv2.resize(
-            pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-        heatmaps = cv2.resize(
-            heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-
-        ########################################################################
-        #joint_listがそれぞれの関節:joint_list [6.81000000e+02, 3.26000000e+02, 1.57175213e-01, 0.00000000e+00,0.00000000e+00] →[x座標,y座標,確率,index,関節番号]
-        #person_to_joint_assocが各個人の関節:[0~17はjoint_listのindex番号, スコア, 検出できた関節の数]
-        _, result_img, joint_list, person_to_joint_assoc = decode_pose(oriImg, heatmaps, pafs)
-
-        if joint_list.ndim or person_to_joint_assoc.ndim == 1:
-            continue
-        else:
-            one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19]) ##一人の関節（joint_listのindexが並んでる）
-            joint_list = np.delete(joint_list, [2,3,4] , 1)  ##全ての関節の座標のみのリスト
+    ###########################################################
+    with open("annotationed_movie.pkl", "rb") as annotationed_movie:
+        movie_dic = pickle.load(annotationed_movie)
 
 
-            for i, v in enumerate(one_person_to_joint_index):
-                if one_person_to_joint_index[i] == -1:
-                    each_joint_coordinate = [0,0]  ##??検出できなかった関節の座標はどうしましょう？？
-                else:
-                    each_joint_coordinate = joint_list[int(v)] ##[indexで座標を取得]
-                    each_joint_coordinate = each_joint_coordinate.tolist()
-                person_joints.append((filename, label_id, each_joint_coordinate, split_id))
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seq_length', default=300)
+    parser.add_argument('--img_size', default=224) 
+    args = parser.parse_args() 
+
+    # joint_lists = {}
+    data = []
+    for mid, frames in movie_dic.items(): 
+        each_coordinates = []
+        coordinates = []
+        labels = []
+        split_id = np.random.randint(1, 5)
+        for frame in frames:
+            filename = frame[0]
+            label_id = frame[1]
+            filepath = "/home/akiho/projects/golfdb/data/videos_40/img" +str( mid )+ '/' + filename
+            oriImg = cv2.imread(filepath)  # B,G,Rの順番
+
+            # BGRをRGBにして表示
+            oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
+            plt.imshow(oriImg)
+            # plt.show()
+
+            # 画像のリサイズ
+            size = (368, 368)
+            img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
+
+            # 画像の前処理
+            img = img.astype(np.float32) / 255.
+
+            # 色情報の標準化
+            color_mean = [0.485, 0.456, 0.406]
+            color_std = [0.229, 0.224, 0.225]
+
+            preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
+
+            for i in range(3):
+                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
+                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
+
+            # （高さ、幅、色）→（色、高さ、幅）
+            img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
+
+            # 画像をTensorに
+            img = torch.from_numpy(img)
+
+            # ミニバッチ化：torch.Size([1, 3, 368, 368])
+            x = img.unsqueeze(0)
+
+            #######################################################################
+
+            net.eval()
+            predicted_outputs, _ = net(x)
+
+            # 画像をテンソルからNumPyに変化し、サイズを戻します
+            pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
+            heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
+
+            pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
+            heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
 
 
-        # '''
-        # array([[681., 326.,   0.,   0.],
-        #     [628., 346.,   1.,   1.],
-        #     [644., 349.,   2.,   2.],
-        #     [669., 297.,   3.,   3.],
-        #     [630., 410.,   4.,   3.],
-        #     [671., 284.,   5.,   4.],
-        #     [676., 445.,   6.,   4.],
-        #     [608., 344.,   7.,   5.],
-        #     [654., 305.,   8.,   6.],
-        #     [592., 423.,   9.,   8.],
-        #     [631., 476.,  10.,   9.],
-        #     [631., 476.,  11.,   9.],
-        #     [604., 535.,  12.,  10.],
-        #     [566., 422.,  13.,  11.],
-        #     [632., 472.,  14.,  12.],
-        #     [625., 536.,  15.,  13.],
-        #     [681., 320.,  16.,  14.],
-        #     [655., 318.,  17.,  16.],
-        #     [625., 314.,  18.,  17.]])
-        # array([[ 0.        ,  1.        ,  2.        ,  4.        ,  6.        ,
-        #  7.        , -1.        , -1.        ,  9.        , 10.        ,
-        # 12.        , 13.        , 14.        , 15.        , 16.        ,
-        # -1.        , 17.        , 18.        , 16.74321419, 15.        ]])
-        # '''
-        # joint_lists[mid] = [(filename, label_id, person_joint, split_id)]
-    print('movie' + str(mid))
+            pafs = cv2.resize(
+                pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+            heatmaps = cv2.resize(
+                heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+
+            ########################################################################
+            #joint_listがそれぞれの関節:joint_list [6.81000000e+02, 3.26000000e+02, 1.57175213e-01, 0.00000000e+00,0.00000000e+00] →[x座標,y座標,確率,index,関節番号]
+            #person_to_joint_assocが各個人の関節:[0~17はjoint_listのindex番号, スコア, 検出できた関節の数]
+            _, _, joint_list, person_to_joint_assoc = decode_pose(oriImg, heatmaps, pafs)
 
 
-if not os.path.exists('data/coordinates'):
-        os.mkdir('data/coordinates')
+            if joint_list.ndim == 1 or person_to_joint_assoc.ndim == 1:
+                continue
+            else:
+                one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19]) ##一人の関節（joint_listのindexが並んでる）
+                joint_list = np.delete(joint_list, [2,3,4] , 1)  ##全ての関節の座標のみのリスト
 
 
-for i in range(1, 5):  
-    images = []
-    labels = []
-    val_split = []
-    train_split = []
-
-    for movie_data in person_joints:
-        if movie_data[3] == i:
-            val_split.append((movie_data[0], movie_data[1], movie_data[2]))  ##(filename, label_id, [座標])
-        else:
-            train_split.append((movie_data[0], movie_data[1], movie_data[2]))
+                for i, v in enumerate(one_person_to_joint_index):
+                    if one_person_to_joint_index[i] == -1:
+                        each_joint_coordinate = [0,0]  ##??検出できなかった関節の座標はどうしましょう？？
+                    else:
+                        each_joint_coordinate = joint_list[int(v)] ##[indexで座標を取得]
+                        each_joint_coordinate = each_joint_coordinate.tolist()
+                    each_coordinates.append(each_joint_coordinate)
+                coordinates.append(each_coordinates)
+                labels.append(label_id)
 
 
-    with open("data/coordinates/val_split_{:1d}.pkl".format(i), "wb") as f:
-        pickle.dump(val_split, f)
-    with open("data/coordinates/train_split_{:1d}.pkl".format(i), "wb") as f:
-        pickle.dump(train_split, f)
-    print("finish {}".format(i))
+        print(len(coordinates))
+        index = 0
+        for i in range(len(coordinates)):
+            if index+int(args.seq_length) <=len(coordinates):
+                split_coordinates = coordinates[index : index+int(args.seq_length)]
+                split_label = labels[index : index+int(args.seq_length)]
+            else:
+                break
+            data.append((split_coordinates, split_label, split_id))  ##split_id = 3
+            index += 10
 
+
+        
+
+
+            # '''
+            # array([[681., 326.,   0.,   0.],
+            #     [628., 346.,   1.,   1.],
+            #     [644., 349.,   2.,   2.],
+            #     [669., 297.,   3.,   3.],
+            #     [630., 410.,   4.,   3.],
+            #     [671., 284.,   5.,   4.],
+            #     [676., 445.,   6.,   4.],
+            #     [608., 344.,   7.,   5.],
+            #     [654., 305.,   8.,   6.],
+            #     [592., 423.,   9.,   8.],
+            #     [631., 476.,  10.,   9.],
+            #     [631., 476.,  11.,   9.],
+            #     [604., 535.,  12.,  10.],
+            #     [566., 422.,  13.,  11.],
+            #     [632., 472.,  14.,  12.],
+            #     [625., 536.,  15.,  13.],
+            #     [681., 320.,  16.,  14.],
+            #     [655., 318.,  17.,  16.],
+            #     [625., 314.,  18.,  17.]])
+            # array([[ 0.        ,  1.        ,  2.        ,  4.        ,  6.        ,
+            #  7.        , -1.        , -1.        ,  9.        , 10.        ,
+            # 12.        , 13.        , 14.        , 15.        , 16.        ,
+            # -1.        , 17.        , 18.        , 16.74321419, 15.        ]])
+            # '''
+            # joint_lists[mid] = [(filename, label_id, person_joint, split_id)]
+        print('movie' + str(mid) + 'len' + str(len(data)))
+
+
+    if not os.path.exists('data/coordinates/seq_length_{}'.format(args.seq_length)):
+            os.mkdir('data/coordinates/seq_length_{}'.format(args.seq_length))
+
+
+    for i in range(1, 5):  
+        images = []
+        labels = []
+        val_split = []
+        train_split = []
+
+        for movie_data in data:
+            if movie_data[2] == i:
+                val_split.append((movie_data[0], movie_data[1])) ##(filename, label_id, [座標])
+            else:
+                train_split.append((movie_data[0], movie_data[1]))
+
+
+        with open("data/coordinates/seq_length_{}/val_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
+            pickle.dump(val_split, f)
+        with open("data/coordinates/seq_length_{}/train_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
+            pickle.dump(train_split, f)
+        print("finish {}".format(i))
+
+
+if __name__ == "__main__":
+    main()
 
 ###########################################################
 # joint_lists = {}
