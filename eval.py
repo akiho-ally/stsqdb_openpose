@@ -19,15 +19,15 @@ def eval(model, split, seq_length, bs, n_cpu, disp):
         dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/val_split_{}.pkl'.format(int(seq_length), split),
                         vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
                         seq_length=int(seq_length),
-                        transform=transforms.Compose([ToTensor(),
-                                                    Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                        # transform=transforms.Compose([ToTensor(),
+                        #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                         train=False)
     else:
         dataset = StsqDB(data_file='data/coordinates/seq_length_{}/val_split_{}.pkl'.format(int(seq_length), split),
                     vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
                     seq_length=int(seq_length),
-                    transform=transforms.Compose([ToTensor(),
-                                                Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                    # transform=transforms.Compose([ToTensor(),
+                    #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                     train=True)
 
     data_loader = DataLoader(dataset,
@@ -49,7 +49,7 @@ def eval(model, split, seq_length, bs, n_cpu, disp):
 
     for i, sample in enumerate(data_loader):
         images, labels = sample['images'].to(device), sample['labels'].to(device)
-        logits = model(images) 
+        logits = model(images.float()) 
         probs = F.softmax(logits.data, dim=1)  ##確率
         labels = labels.view(int(bs)*int(seq_length))
         _, c, element_c, element_s, conf = correct_preds(probs, labels.squeeze(),use_no_element)
@@ -124,10 +124,10 @@ if __name__ == '__main__':
         plt.ylabel('Actual Category')
         plt.yticks(range(12), element_names)
         plt.xlabel('Predicted Category')
-        plt.xticks(range(12), element_names)
+        plt.xticks(range(12), element_names,rotation=45)
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
-        plt.savefig(save_dir + 'op_figure_12.png')
+        plt.savefig(save_dir + 'coordinates_figure_12.png')
 
     else:
         plt.ylabel('Actual Category')
@@ -136,4 +136,4 @@ if __name__ == '__main__':
         plt.xticks(range(13), element_names)      
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
-        plt.savefig(save_dir + 'op_figure_13.png')
+        plt.savefig(save_dir + 'coordinates_figure_13.png')

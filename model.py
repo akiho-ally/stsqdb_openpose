@@ -16,14 +16,14 @@ class EventDetector(nn.Module):
         self.use_no_element = use_no_element
 
         # TODO : 19~25をコメント
-        net = MobileNetV2(width_mult=width_mult)
-        state_dict_mobilenet = torch.load('mobilenet_v2.pth.tar')
-        if pretrain:
-            net.load_state_dict(state_dict_mobilenet,strict=False)
-            #net.load_state_dict(state_dict_mobilenet)
+        # net = MobileNetV2(width_mult=width_mult)
+        # state_dict_mobilenet = torch.load('mobilenet_v2.pth.tar')
+        # if pretrain:
+        #     net.load_state_dict(state_dict_mobilenet,strict=False)
+        #     #net.load_state_dict(state_dict_mobilenet)
 
-        self.cnn = nn.Sequential(*list(net.children())[0][:19])
-        self.rnn = nn.LSTM(int(1280*width_mult if width_mult > 1.0 else 1280),
+        # self.cnn = nn.Sequential(*list(net.children())[0][:19])
+        self.rnn = nn.LSTM(int(36*width_mult if width_mult > 1.0 else 36),
                            self.lstm_hidden, self.lstm_layers,
                            batch_first=True, bidirectional=bidirectional)
         if self.use_no_element == False:
@@ -52,7 +52,7 @@ class EventDetector(nn.Module):
     def forward(self, x, lengths=None):
         # TODO : 55行目追加
         # batch_size, timesteps, C, H, W = x.size()  ##torch.Size([8, 300, 3, 224, 224])
-        batch_size, timesteps, coordinate = x.size()
+        batch_size, timesteps, one_person_coordinates, each_coordinates = x.size() ##torch.Size([8, 300, 18, 2])
         self.hidden = self.init_hidden(batch_size)
 
         # # CNN forward
@@ -64,7 +64,8 @@ class EventDetector(nn.Module):
 
         # TODO : c.outを座標データに変えるはず
         # LSTM forward
-        r_in = c_out.view(batch_size, timesteps, -1)  ##torch.Size([8, 300, 1280])
+
+        r_in = x.view(batch_size, timesteps, one_person_coordinates * each_coordinates)  ##torch.Size([8, 300, 1280])  ##torch.Size([8, 300, 36])
         r_out, states = self.rnn(r_in, self.hidden)   ##r_out:torch.Size([8, 300, 512]),  len(states)=2
         out = self.lin(r_out)  ##torch.Size([8, 300, 12])
 

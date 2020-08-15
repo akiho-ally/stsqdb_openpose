@@ -43,19 +43,15 @@ class StsqDB(Dataset):
         # pklファイルからimg, labelを読み込む
         with open(self.data_file, "rb") as f:  
             data = pickle.load(f)
-        # TODO : imagesを変換
-        # images = [ pair[0] for pair in data ]  ##len(images)=300
-        # labels = [ pair[1] for pair in data ] 
-        images = [ pair[2] for pair in data ]  ##len(images)=300  ##images = 座標
+        images = [ pair[0] for pair in data ]  ##len(images)=300
         labels = [ pair[1] for pair in data ] 
+
         return images, labels 
-
-
-
 
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
     def __call__(self, sample):
+
         images, labels = sample['images'], sample['labels']
         images = images.transpose((0, 3, 1, 2))
         return {'images': torch.from_numpy(images).float().div(255.),
@@ -77,17 +73,19 @@ if __name__ == '__main__':
 
     norm = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # ImageNet 平均 and 標準偏差 (RGB)で正規化
 
-    dataset = StsqDB(data_file='train_split_1.pkl',
-                     vid_dir='data/videos_40/',
-                     seq_length=300,
-                     transform=transforms.Compose([ToTensor(), norm]),
-                     train=False)
+    dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_300/train_split_1.pkl',
+                    vid_dir='/home/akiho/projects/StSqDBdb/data/videos_40/',
+                    seq_length=300,
+                    # transform=transforms.Compose([ToTensor(),
+                    #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                    train=True)
    
 
     data_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=6, drop_last=False) ##num_workers:６つ並行処理を行う 
 
     for i, sample in enumerate(data_loader):
-        images, labels = sample['images'], sample['labels']
+        images, labels = sample['images'], sample['labels']  ##images.size()=torch.Size([1, 300, 18, 2])
+        import pdb; pdb.set_trace()
         events = np.where(labels.squeeze() < 12)[0]  ##np.where:labels.squeeze()<8のインデックスを取得
         print('{} events: {}'.format(len(events), events)) ##8つのフレーム番号
     
