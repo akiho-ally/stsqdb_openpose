@@ -108,32 +108,47 @@ if __name__ == '__main__':
     losses = AverageMeter()
     #print('utils.py, class AverageMeter()')
 
-    if not os.path.exists('models'):
-        os.mkdir('models')
+    if not os.path.exists('models/seq_length_{}/'.format(args.seq_length)):
+        os.mkdir('models/seq_length_{}/'.format(args.seq_length))
 
 
-
-    epoch = 0
     for epoch in range(int(iterations)):
+        print(epoch)
+    # i = 0
     # while i < int(iterations):
+    #     print(i)
         for sample in tqdm(data_loader):
             images, labels = sample['images'].to(device), sample['labels'].to(device)
-            logits = model(images)       
+            logits = model(images)      
             labels = labels.view(int(bs)*int(seq_length))  ##??
             loss = criterion(logits, labels)
             optimizer.zero_grad()
             loss.backward() 
             losses.update(loss.item(), images.size(0))
+
             optimizer.step()
 
             
 
-            print('epoch: {}\tLoss: {loss.val:.4f} ({loss.avg:.4f})'.format(epoch, loss=losses))
+            print('iteration: {}\tLoss: {loss.val:.4f} ({loss.avg:.4f})'.format(epoch, loss=losses))
+            # print('epoch: {}\tLoss: {loss.val:.4f} ({loss.avg:.4f})'.format(i, loss=losses))
+
             epoch += 1
-            if epoch % it_save == 0:
+            if epoch % int(it_save) == 0:
                 torch.save({'optimizer_state_dict': optimizer.state_dict(),
-                            'model_state_dict': model.state_dict()}, 'models/swingnet_{}.pth.tar'.format(epoch))
+                            'model_state_dict': model.state_dict()}, 'models/seq_length_{}/swingnet_{}.pth.tar'.format(args.seq_length, epoch))
             if epoch == iterations:
                 break
 
-        experiment.log_metrics("train_loss", losses, step=epoch)
+            # i += 1
+            # if i % int(it_save) == 0:
+            #     torch.save({'optimizer_state_dict': optimizer.state_dict(),
+            #                 'model_state_dict': model.state_dict()}, 'models/coordinates/swingnet_{}.pth.tar'.format(i))
+            # if i == iterations:
+            #     break
+
+        
+
+        experiment.log_parameter("train_loss", loss.item(), step=epoch)
+
+
