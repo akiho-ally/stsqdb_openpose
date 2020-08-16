@@ -133,7 +133,7 @@ if __name__ == '__main__':
         plt.ylabel('Actual Category')
         plt.yticks(range(13), element_names)
         plt.xlabel('Predicted Category')
-        plt.xticks(range(13), element_names)      
+        plt.xticks(range(13), element_names,rotation=45)      
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
         plt.savefig(save_dir + 'coordinates_figure_13.png')
