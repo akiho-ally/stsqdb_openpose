@@ -68,14 +68,14 @@ if __name__ == '__main__':
 
     if use_no_element == False:
         dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
-                        vid_dir='/home/akiho/projects/StSqDBdb/data/videos_40/',
+                        vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
                         seq_length=int(seq_length),
                         # transform=transforms.Compose([ToTensor(),
                         #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                         train=True)
     else:
         dataset = StsqDB(data_file='data/coordinates/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
-                    vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
+                    vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
                     seq_length=int(seq_length),
                     # transform=transforms.Compose([ToTensor(),
                     #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
@@ -110,48 +110,45 @@ if __name__ == '__main__':
     losses = AverageMeter()
     #print('utils.py, class AverageMeter()')
 
-    if not os.path.exists('models/coordinates'):
-        os.mkdir('models/coordinates')
+    if use_no_element == False:
+        if not os.path.exists('models/coordinates/no_ele/seq_length_{}'.format(args.seq_length)):
+            os.mkdir('models/coordinates/seq_length_{}'.format(args.seq_length))
+    else:
+        if not os.path.exists('models/coordinates/seq_length_{}'.format(args.seq_length)):
+            os.mkdir('models/coordinates/seq_length_{}'.format(args.seq_length))
 
 
 
     epoch = 0
     for epoch in range(int(iterations)):
         print(epoch)
-    # i = 0
-    # while i < int(iterations):
-    #     print(i)
+
         for sample in tqdm(data_loader):
             images, labels = sample['images'].to(device), sample['labels'].to(device)
-            logits = model(images.float())      
-            labels = labels.view(int(bs)*int(seq_length))  ##??
+            logits = model(images.float())       
+            labels = labels.view(int(bs)*int(seq_length))  
             loss = criterion(logits, labels)
             optimizer.zero_grad()
             loss.backward() 
             losses.update(loss.item(), images.size(0))
-
             optimizer.step()
 
-            
-
-            print('iteration: {}\tLoss: {loss.val:.4f} ({loss.avg:.4f})'.format(epoch, loss=losses))
-            # print('epoch: {}\tLoss: {loss.val:.4f} ({loss.avg:.4f})'.format(i, loss=losses))
-
-            epoch += 1
-            if epoch % int(it_save) == 0:
-                torch.save({'optimizer_state_dict': optimizer.state_dict(),
-                            'model_state_dict': model.state_dict()}, 'models/coordinates/swingnet_{}.pth.tar'.format(epoch))
-            if epoch == iterations:
-                break
-
-
-            # i += 1
-            # if i % int(it_save) == 0:
-            #     torch.save({'optimizer_state_dict': optimizer.state_dict(),
-            #                 'model_state_dict': model.state_dict()}, 'models/coordinates/swingnet_{}.pth.tar'.format(i))
-            # if i == iterations:
-            #     break
-
         
+            print('epoch: {}\tLoss: {loss.val:.4f} ({loss.avg:.4f})'.format(epoch, loss=losses))
+
+            if use_no_element == False:
+                epoch += 1
+                if epoch % it_save == 0:
+                    torch.save({'optimizer_state_dict': optimizer.state_dict(),
+                                'model_state_dict': model.state_dict()}, 'models/coordinates/no_ele/seq_length_{}/swingnet_{}.pth.tar'.format(args.seq_length, epoch))
+                if epoch == iterations:
+                    break
+            else:
+                epoch += 1
+                if epoch % it_save == 0:
+                    torch.save({'optimizer_state_dict': optimizer.state_dict(),
+                                'model_state_dict': model.state_dict()}, 'models/coordinates/seq_length_{}/swingnet_{}.pth.tar'.format(args.seq_length, epoch))
+                if epoch == iterations:
+                    break
 
         experiment.log_parameter("train_loss", loss.item(), step=epoch)
