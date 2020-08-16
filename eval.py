@@ -97,7 +97,7 @@ if __name__ == '__main__':
                           dropout=False,
                           use_no_element=use_no_element)
 
-    save_dict = torch.load('models/swingnet_{}.pth.tar'.format(args.model_num))
+    save_dict = torch.load('models/seq_length_{}/swingnet_{}.pth.tar'.format(args.seq_length,args.model_num))
     model.load_state_dict(save_dict['model_state_dict'])
     model.to(device)
     model.eval()
@@ -119,12 +119,12 @@ if __name__ == '__main__':
     ####################################################################
     print(confusion_matrix)
     fig, ax = plt.subplots(1,1,figsize=(8,6))
-    ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=150000, cmap=plt.get_cmap('Blues'))
+    ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=7000, cmap=plt.get_cmap('Blues'))
     if args.use_no_element == False:
         plt.ylabel('Actual Category')
         plt.yticks(range(12), element_names)
         plt.xlabel('Predicted Category')
-        plt.xticks(range(12), element_names)
+        plt.xticks(range(12), element_names,rotation=45)
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
         plt.savefig(save_dir + 'op_figure_12.png')
