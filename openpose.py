@@ -41,7 +41,7 @@ def main():
 
 
     ###########################################################
-    with open("annotationed_movie.pkl", "rb") as annotationed_movie:
+    with open("annotationed_movie_12.pkl", "rb") as annotationed_movie:
         movie_dic = pickle.load(annotationed_movie)
 
 
@@ -57,6 +57,7 @@ def main():
         coordinates = []
         labels = []
         split_id = np.random.randint(1, 5)
+        delete_coordinates = 0
         for frame in frames:
             filename = frame[0]
             label_id = frame[1]
@@ -123,22 +124,27 @@ def main():
             else:
                 one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19]) ##一人の関節（joint_listのindexが並んでる）
                 joint_list = np.delete(joint_list, [2,3,4] , 1)  ##全ての関節の座標のみのリスト
+                # TODO : 上半身と下半身で分ける
+                # one_person_to_joint_index = one_person_to_joint_index[8:14]  ##下半身
+                one_person_to_joint_index = np.delete(one_person_to_joint_index, [8,9,10,11,12,13]) ##上半身
 
                 each_coordinates = []
                 for i, v in enumerate(one_person_to_joint_index):
 
                     if one_person_to_joint_index[i] == -1:
-                        each_joint_coordinate = [0,0]  ##??検出できなかった関節の座標はどうしましょう？？
+                        each_joint_coordinate = [0,0]  
+                        delete_coordinates += 1
                     else:
                         each_joint_coordinate = joint_list[int(v)] ##[indexで座標を取得]
                         each_joint_coordinate = each_joint_coordinate.tolist()
                     each_coordinates.append(each_joint_coordinate)
                 coordinates.append(each_coordinates)
                 labels.append(label_id)
-
                 ##[[[716.0, 234.0], [723.0, 266.0], [685.0, 267.0], [677.0, 314.0], [679.0, 355.0], [762.0, 263.0], [793.0, 276.0], [0, 0], [707.0, 365.0], [684.0, 443.0], [696.0, 528.0], [759.0, 363.0], [764.0, 447.0], [764.0, 521.0], [706.0, 228.0], [722.0, 227.0], [696.0, 235.0], [737.0, 230.0], [682.0, 260.0], [665.0, 296.0], [629.0, 299.0], [607.0, 350.0], [604.0, 399.0], [703.0, 293.0], [734.0, 333.0], [779.0, 353.0], [652.0, 399.0], [662.0, 481.0], [606.0, 546.0], [698.0, 398.0], [705.0, 483.0], [640.0, 534.0], [674.0, 256.0], [687.0, 254.0], [652.0, 260.0], [0, 0]], [[716.0, 234.0], [723.0, 266.0], [685.0, 267.0], [677.0, 314.0], [679.0, 355.0], [762.0, 263.0], [793.0, 276.0], [0, 0], [707.0, 365.0], [684.0, 443.0], [696.0, 528.0], [759.0, 363.0], [764.0, 447.0], [764.0, 521.0], [706.0, 228.0], [722.0, 227.0], [696.0, 235.0], [737.0, 230.0], [682.0, 260.0], [665.0, 296.0], [629.0, 299.0], [607.0, 350.0], [604.0, 399.0], [703.0, 293.0], [734.0, 333.0], [779.0, 353.0], [652.0, 399.0], [662.0, 481.0], [606.0, 546.0], [698.0, 398.0], [705.0, 483.0], [640.0, 534.0], [674.0, 256.0], [687.0, 254.0], [652.0, 260.0], [0, 0]]]
                 ##len()2
 
+        sum_coordinates = 18 * len(coordinates)
+        print(str(delete_coordinates) + ' / ' + str(sum_coordinates))
         print(len(coordinates))
         index = 0
         for i in range(len(coordinates)):
@@ -185,8 +191,8 @@ def main():
         print('movie' + str(mid) + 'len' + str(len(data)))
 
 
-    if not os.path.exists('data/coordinates/seq_length_{}'.format(args.seq_length)):
-            os.mkdir('data/coordinates/seq_length_{}'.format(args.seq_length))
+    if not os.path.exists('data/coordinates/no_ele/seq_length_{}'.format(args.seq_length)):
+            os.mkdir('data/coordinates/no_ele/seq_length_{}'.format(args.seq_length))
 
 
     for i in range(1, 5):  
@@ -202,9 +208,9 @@ def main():
                 train_split.append((movie_data[0], movie_data[1]))
 
 
-        with open("data/coordinates/seq_length_{}/val_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
+        with open("data/coordinates/no_ele/seq_length_{}/val_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
             pickle.dump(val_split, f)
-        with open("data/coordinates/seq_length_{}/train_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
+        with open("data/coordinates/no_ele/seq_length_{}/train_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
             pickle.dump(train_split, f)
         print("finish {}".format(i))
 

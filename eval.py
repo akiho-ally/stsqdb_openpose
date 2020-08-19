@@ -124,14 +124,14 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(1,1,figsize=(8,6))
     
     if args.use_no_element == False:
-        ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=2200, cmap=plt.get_cmap('Blues'))
+        ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=1250, cmap=plt.get_cmap('Blues'))
         plt.ylabel('Actual Category')
         plt.yticks(range(12), element_names)
         plt.xlabel('Predicted Category')
         plt.xticks(range(12), element_names,rotation=45)
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
-        plt.savefig(save_dir + 'coordinates_figure_12.png')
+        plt.savefig(save_dir + 'coordinates_figure_12_up.png')
 
     else:
         ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=50000, cmap=plt.get_cmap('Blues'))
@@ -141,4 +141,4 @@ if __name__ == '__main__':
         plt.xticks(range(13), element_names,rotation=45)      
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
-        plt.savefig(save_dir + 'coordinates_figure_13.png')
+        plt.savefig(save_dir + 'coordinates_figure_13_up.png')

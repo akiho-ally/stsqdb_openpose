@@ -23,7 +23,7 @@ class EventDetector(nn.Module):
         #     #net.load_state_dict(state_dict_mobilenet)
 
         # self.cnn = nn.Sequential(*list(net.children())[0][:19])
-        self.rnn = nn.LSTM(int(36*width_mult if width_mult > 1.0 else 36),
+        self.rnn = nn.LSTM(int(24*width_mult if width_mult > 1.0 else 24),
                            self.lstm_hidden, self.lstm_layers,
                            batch_first=True, bidirectional=bidirectional)
         if self.use_no_element == False:
