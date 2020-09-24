@@ -66,23 +66,23 @@ if __name__ == '__main__':
     print('Loading Data')
 
 
-    # TODO: vid_dirのpathをかえる。stsqの動画を切り出したimage全部が含まれているdirにする
     if use_no_element == False:
-        dataset = StsqDB(data_file='data/no_ele/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
-                        vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
+        dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
+                        vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                         seq_length=int(seq_length),
-                        transform=transforms.Compose([ToTensor(),
-                                                    Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                        # transform=transforms.Compose([ToTensor(),
+                        #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                         train=True)
     else:
-        dataset = StsqDB(data_file='data/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
-                    vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
+        dataset = StsqDB(data_file='data/same_frames/train_split_1.pkl',
+                    vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                     seq_length=int(seq_length),
-                    transform=transforms.Compose([ToTensor(),
-                                                Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                    # transform=transforms.Compose([ToTensor(),
+                    #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                     train=True)
     print('dataloader.py, class StsqDB()')
     # dataset.__len__() : 1050
+
 
 
     data_loader = DataLoader(dataset,
@@ -90,13 +90,15 @@ if __name__ == '__main__':
                              shuffle=True,
                              num_workers=n_cpu,
                              drop_last=True)
+    
+
 
     # dataset.__len__() : 47 (dataset/bs)
                   
 
     # the 8 golf swing events are classes 0 through 7, no-event is class 8
     # the ratio of events to no-events is approximately 1:35 so weight classes accordingly:
-    # TODO: edit weights shape from golf-8-element to stsq-12-element
+
     if use_no_element == False:
         weights = torch.FloatTensor([1/3, 1, 2/5, 1/3, 1/6, 1, 1/4, 1, 1/4, 1/3, 1/2, 1/6]).to(device)
     else:
@@ -108,32 +110,45 @@ if __name__ == '__main__':
     losses = AverageMeter()
     #print('utils.py, class AverageMeter()')
 
-    if not os.path.exists('models'):
-        os.mkdir('models')
+    if use_no_element == False:
+        if not os.path.exists('models/coordinates/no_ele/seq_length_{}'.format(args.seq_length)):
+            os.mkdir('models/coordinates/seq_length_{}'.format(args.seq_length))
+    else:
+        if not os.path.exists('models/coordinates/'):
+            os.mkdir('models/coordinates/')
 
 
 
     epoch = 0
     for epoch in range(int(iterations)):
-    # while i < int(iterations):
+        print(epoch)
+
         for sample in tqdm(data_loader):
             images, labels = sample['images'].to(device), sample['labels'].to(device)
-            logits = model(images)       
-            labels = labels.view(int(bs)*int(seq_length))  ##??
+            logits = model(images.float())       
+            labels = labels.view(int(bs)*int(seq_length))  
             loss = criterion(logits, labels)
             optimizer.zero_grad()
             loss.backward() 
             losses.update(loss.item(), images.size(0))
             optimizer.step()
 
-            
-
+        
             print('epoch: {}\tLoss: {loss.val:.4f} ({loss.avg:.4f})'.format(epoch, loss=losses))
-            epoch += 1
-            if epoch % it_save == 0:
-                torch.save({'optimizer_state_dict': optimizer.state_dict(),
-                            'model_state_dict': model.state_dict()}, 'models/swingnet_{}.pth.tar'.format(epoch))
-            if epoch == iterations:
-                break
 
-        experiment.log_metrics("train_loss", losses, step=epoch)
+            if use_no_element == False:
+                epoch += 1
+                if epoch % it_save == 0:
+                    torch.save({'optimizer_state_dict': optimizer.state_dict(),
+                                'model_state_dict': model.state_dict()}, 'models/coordinates/no_ele/seq_length_{}/swingnet_{}.pth.tar'.format(args.seq_length, epoch))
+                if epoch == iterations:
+                    break
+            else:
+                epoch += 1
+                if epoch % it_save == 0:
+                    torch.save({'optimizer_state_dict': optimizer.state_dict(),
+                                'model_state_dict': model.state_dict()}, 'models/coordinates/swingnet_{}.pth.tar'.format(epoch))
+                if epoch == iterations:
+                    break
+
+        experiment.log_parameter("train_loss", loss.item(), step=epoch)

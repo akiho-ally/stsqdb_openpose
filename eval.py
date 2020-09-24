@@ -16,18 +16,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def eval(model, split, seq_length, bs, n_cpu, disp):
     
     if use_no_element == False:
-        dataset = StsqDB(data_file='data/no_ele/seq_length_{}/val_split_{}.pkl'.format(int(seq_length), split),
-                        vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
+        dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/val_split_{}.pkl'.format(int(seq_length), split),
+                        vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                         seq_length=int(seq_length),
-                        transform=transforms.Compose([ToTensor(),
-                                                    Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                        # transform=transforms.Compose([ToTensor(),
+                        #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                         train=False)
     else:
-        dataset = StsqDB(data_file='data/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
-                    vid_dir='/home/akiho/projects/golfdb/data/videos_40/',
+        dataset = StsqDB(data_file='data/same_frames/val_split_1.pkl',
+                    vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                     seq_length=int(seq_length),
-                    transform=transforms.Compose([ToTensor(),
-                                                Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                    # transform=transforms.Compose([ToTensor(),
+                    #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                     train=True)
 
     data_loader = DataLoader(dataset,
@@ -49,7 +49,7 @@ def eval(model, split, seq_length, bs, n_cpu, disp):
 
     for i, sample in enumerate(data_loader):
         images, labels = sample['images'].to(device), sample['labels'].to(device)
-        logits = model(images) 
+        logits = model(images.float()) 
         probs = F.softmax(logits.data, dim=1)  ##確率
         labels = labels.view(int(bs)*int(seq_length))
         _, c, element_c, element_s, conf = correct_preds(probs, labels.squeeze(),use_no_element)
@@ -96,8 +96,11 @@ if __name__ == '__main__':
                           bidirectional=True,
                           dropout=False,
                           use_no_element=use_no_element)
+    if use_no_element == False:
+        save_dict = torch.load('models/coordinates/no_ele/seq_length_{}/swingnet_{}.pth.tar'.format(args.seq_length, args.model_num))
+    else:
+        save_dict = torch.load('models/coordinates/swingnet_{}.pth.tar'.format(args.model_num))
 
-    save_dict = torch.load('models/swingnet_{}.pth.tar'.format(args.model_num))
     model.load_state_dict(save_dict['model_state_dict'])
     model.to(device)
     model.eval()
@@ -119,21 +122,23 @@ if __name__ == '__main__':
     ####################################################################
     print(confusion_matrix)
     fig, ax = plt.subplots(1,1,figsize=(8,6))
-    ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=7500, cmap=plt.get_cmap('Blues'))
+    
     if args.use_no_element == False:
+        ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=1250, cmap=plt.get_cmap('Blues'))
         plt.ylabel('Actual Category')
         plt.yticks(range(12), element_names)
         plt.xlabel('Predicted Category')
-        plt.xticks(range(12), element_names)
+        plt.xticks(range(12), element_names,rotation=45)
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
-        plt.savefig(save_dir + 'op_figure_12.png')
+        plt.savefig(save_dir + 'coordinates_figure_12_up.png')
 
     else:
+        ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=50000, cmap=plt.get_cmap('Blues'))
         plt.ylabel('Actual Category')
         plt.yticks(range(13), element_names)
         plt.xlabel('Predicted Category')
-        plt.xticks(range(13), element_names)      
+        plt.xticks(range(13), element_names,rotation=45)      
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
-        plt.savefig(save_dir + 'op_figure_13.png')
+        plt.savefig(save_dir + 'coordinates_figure_30_up.png')
