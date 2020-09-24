@@ -47,252 +47,454 @@ def main():
     args = parser.parse_args() 
 
     # 1. movie_dicの読み込み
-    with open("annotationed_movie.pkl", "rb") as annotationed_movie:
-        movie_dic = pickle.load(annotationed_movie)
+    with open("/home/akiho/projects/StSqDB/anno_data_train.pkl", "rb") as annotationed_train:
+        anno_element_train = pickle.load(annotationed_train) 
+    
+    with open("/home/akiho/projects/StSqDB/anno_data_eval.pkl", "rb") as annotationed_eval:
+        anno_element_eval = pickle.load(annotationed_eval) 
 
-    data = []
-    for mid, frames in movie_dic.items(): 
 
-###########################################################################リサイズ
-        images = []
-        labels = []
-        split_id = np.random.randint(1, 5)
-        for frame in frames:
-            filename = frame[0]
-            label_id = frame[1]
-            filepath = "data/videos_40/img" +str( mid )+ '/' + filename
-            oriImg = cv2.imread(filepath)  # B,G,Rの順番
+    element_names = ['Bracket', 'Change_edge', 'Chasse', 'Choctaw', 'Counter_turn', 'Cross_roll', 'Loop', 'Mohawk', 'Rocker_turn', 'Three_turn', 'Toe_step', 'Twizzle','No_element']
 
-            # BGRをRGBにして表示
-            oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
 
-            # 画像のリサイズ
-            size = (368, 368)
-            img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
+    train_data = []
+    images = []
+    labels = []
+    for file_name, element_name in anno_element_train.items():
+        label_id = element_names.index(element_name)
+        filepath = '/home/akiho/projects/StSqDB/data/dataset/train_all/' + element_name + '/' + file_name
+        oriImg = cv2.imread(filepath)  # B,G,Rの順番
 
-            # 画像の前処理
-            img = img.astype(np.float32) / 255.
+        # BGRをRGBにして表示
+        oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
 
-            # 色情報の標準化
-            color_mean = [0.485, 0.456, 0.406]
-            color_std = [0.229, 0.224, 0.225]
+        # 画像のリサイズ
+        size = (368, 368)
+        img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
 
-            preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
+        # 画像の前処理
+        img = img.astype(np.float32) / 255.
 
-            for i in range(3):
-                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
-                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
+        # 色情報の標準化
+        color_mean = [0.485, 0.456, 0.406]
+        color_std = [0.229, 0.224, 0.225]
 
-            # （高さ、幅、色）→（色、高さ、幅）
-            img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
+        preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
 
-            # 画像をTensorに
-            img = torch.from_numpy(img)
+        for i in range(3):
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
 
-            # ミニバッチ化：torch.Size([1, 3, 368, 368])
-            x = img.unsqueeze(0)
+        # （高さ、幅、色）→（色、高さ、幅）
+        img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
 
-            net.eval()
-            predicted_outputs, _ = net(x)
+        # 画像をTensorに
+        img = torch.from_numpy(img)
 
-            # 画像をテンソルからNumPyに変化し、サイズを戻します
-            pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
-            heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
+        # ミニバッチ化：torch.Size([1, 3, 368, 368])
+        x = img.unsqueeze(0)
 
-            pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
-            heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+        net.eval()
+        predicted_outputs, _ = net(x)
 
-            pafs = cv2.resize(
-                pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-            heatmaps = cv2.resize(
-                heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-            
-            _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
-            # resize_img = np.array(result_img.resize((args.img_size, args.img_size)))
-            resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
-            images.append(resize_img)
-            labels.append(label_id)
+        # 画像をテンソルからNumPyに変化し、サイズを戻します
+        pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
+        heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
 
-        index = 0
-        for i in range(len(images)):
-            if index+int(args.seq_length) <=len(images):
-                split_image = images[index : index+int(args.seq_length)]
-                split_label = labels[index : index+int(args.seq_length)]
-            else:
-                break
-            data.append((split_image, split_label, split_id))  ##split_id = 3
-            index += 10
+        pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+
+        pafs = cv2.resize(
+            pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(
+            heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        
+        _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
+        # resize_img = np.array(result_img.resize((args.img_size, args.img_size)))
+        resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
+        images.append(resize_img)
+        labels.append(label_id)
+
+    index = 0
+    for i in range(len(images)):
+        if index+int(args.seq_length) <=len(images):
+            split_image = images[index : index+int(args.seq_length)]
+            split_label = labels[index : index+int(args.seq_length)]
+        else:
+            break
+        train_data.append((split_image, split_label))  ##split_id = 3
+        index += 30
 # #######################################################################################################反転
-        fliped_images = []
-        fliped_labels = []
-        for frame in frames:
-            filename = frame[0]
-            label_id = frame[1]
-            filepath = "data/videos_40/img" +str( mid )+ '/' + filename
-            oriImg = cv2.imread(filepath)  # B,G,Rの順番
+    fliped_images = []
+    fliped_labels = []
+    for file_name, element_name in anno_element_train.items():
+        label_id = element_names.index(element_name)
 
-            # BGRをRGBにして表示
-            oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
+        filepath = '/home/akiho/projects/StSqDB/data/dataset/train_all/' + element_name + '/' + file_name
+        oriImg = cv2.imread(filepath)  # B,G,Rの順番
 
-            # 画像のリサイズ
-            size = (368, 368)
-            img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
+        # BGRをRGBにして表示
+        oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
 
-            # 画像の前処理
-            img = img.astype(np.float32) / 255.
+        # 画像のリサイズ
+        size = (368, 368)
+        img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
 
-            # 色情報の標準化
-            color_mean = [0.485, 0.456, 0.406]
-            color_std = [0.229, 0.224, 0.225]
+        # 画像の前処理
+        img = img.astype(np.float32) / 255.
 
-            preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
+        # 色情報の標準化
+        color_mean = [0.485, 0.456, 0.406]
+        color_std = [0.229, 0.224, 0.225]
 
-            for i in range(3):
-                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
-                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
+        preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
 
-            # （高さ、幅、色）→（色、高さ、幅）
-            img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
+        for i in range(3):
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
 
-            # 画像をTensorに
-            img = torch.from_numpy(img)
+        # （高さ、幅、色）→（色、高さ、幅）
+        img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
 
-            # ミニバッチ化：torch.Size([1, 3, 368, 368])
-            x = img.unsqueeze(0)
+        # 画像をTensorに
+        img = torch.from_numpy(img)
 
-            net.eval()
-            predicted_outputs, _ = net(x)
+        # ミニバッチ化：torch.Size([1, 3, 368, 368])
+        x = img.unsqueeze(0)
 
-            # 画像をテンソルからNumPyに変化し、サイズを戻します
-            pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
-            heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
+        net.eval()
+        predicted_outputs, _ = net(x)
 
-            pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
-            heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+        # 画像をテンソルからNumPyに変化し、サイズを戻します
+        pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
+        heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
 
-            pafs = cv2.resize(
-                pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-            heatmaps = cv2.resize(
-                heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-            
-            _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
-            resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
+        pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
 
-            img_fliped = np.array(cv2.flip(resize_img, 1)) 
-            fliped_images.append(img_fliped)
-            fliped_labels.append(label_id)
+        pafs = cv2.resize(
+            pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(
+            heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        
+        _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
+        resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
 
-        index = 0
-        for i in range(len(fliped_images)):
-            if index+int(args.seq_length) <=len(images):
-                split_image = fliped_images[index : index+int(args.seq_length)]
-                split_label = fliped_labels[index : index+int(args.seq_length)]
-            else:
-                break
-            data.append((split_image, split_label, split_id))  ##split_id = 3
-            index += 10
+        img_fliped = np.array(cv2.flip(resize_img, 1)) 
+        fliped_images.append(img_fliped)
+        fliped_labels.append(label_id)
+
+    index = 0
+    for i in range(len(fliped_images)):
+        if index+int(args.seq_length) <=len(images):
+            split_image = fliped_images[index : index+int(args.seq_length)]
+            split_label = fliped_labels[index : index+int(args.seq_length)]
+        else:
+            break
+        train_data.append((split_image, split_label))  ##split_id = 3
+        index += 30
 
  ############################################################################################色補正
 
-        bgr_images = []
-        bgr_labels = []
-        for frame in frames:
-            filename = frame[0]
-            label_id = frame[1]
-            filepath = "data/videos_40/img" +str( mid )+ '/' + filename
-            oriImg = cv2.imread(filepath)  # B,G,Rの順番
+    bgr_images = []
+    bgr_labels = []
+    for file_name, element_name in anno_element_train.items():
+        label_id = element_names.index(element_name)
 
-            # BGRをRGBにして表示
-            oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
+        filepath = '/home/akiho/projects/StSqDB/data/dataset/train_all/' + element_name + '/' + file_name
+        oriImg = cv2.imread(filepath)  # B,G,Rの順番
 
-            # 画像のリサイズ
-            size = (368, 368)
-            img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
+        # BGRをRGBにして表示
+        oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
 
-            # 画像の前処理
-            img = img.astype(np.float32) / 255.
+        # 画像のリサイズ
+        size = (368, 368)
+        img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
 
-            # 色情報の標準化
-            color_mean = [0.485, 0.456, 0.406]
-            color_std = [0.229, 0.224, 0.225]
+        # 画像の前処理
+        img = img.astype(np.float32) / 255.
 
-            preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
+        # 色情報の標準化
+        color_mean = [0.485, 0.456, 0.406]
+        color_std = [0.229, 0.224, 0.225]
 
-            for i in range(3):
-                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
-                preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
+        preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
 
-            # （高さ、幅、色）→（色、高さ、幅）
-            img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
+        for i in range(3):
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
 
-            # 画像をTensorに
-            img = torch.from_numpy(img)
+        # （高さ、幅、色）→（色、高さ、幅）
+        img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
 
-            # ミニバッチ化：torch.Size([1, 3, 368, 368])
-            x = img.unsqueeze(0)
+        # 画像をTensorに
+        img = torch.from_numpy(img)
 
-            net.eval()
-            predicted_outputs, _ = net(x)
+        # ミニバッチ化：torch.Size([1, 3, 368, 368])
+        x = img.unsqueeze(0)
 
-            # 画像をテンソルからNumPyに変化し、サイズを戻します
-            pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
-            heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
+        net.eval()
+        predicted_outputs, _ = net(x)
 
-            pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
-            heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+        # 画像をテンソルからNumPyに変化し、サイズを戻します
+        pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
+        heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
 
-            pafs = cv2.resize(
-                pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-            heatmaps = cv2.resize(
-                heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
-            
-            _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
-            resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
-            img_hsv = cv2.cvtColor(resize_img,cv2.COLOR_BGR2HSV)
-            img_hsv[:,:,(1)] = img_hsv[:,:,(1)]*0.5
-            img_bgr = cv2.cvtColor(img_hsv,cv2.COLOR_HSV2BGR)
-            bgr_images.append(img_bgr)
-            bgr_labels.append(label_id)
+        pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
 
-        index = 0
-        for i in range(len(bgr_images)):
-            if index+int(args.seq_length) <=len(images):
-                split_image = bgr_images[index : index+int(args.seq_length)]
-                split_label = bgr_labels[index : index+int(args.seq_length)]
-            else:
-                break
-            data.append((split_image, split_label, split_id))  ##split_id = 3
-            index += 10
+        pafs = cv2.resize(
+            pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(
+            heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        
+        _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
+        resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
+        img_hsv = cv2.cvtColor(resize_img,cv2.COLOR_BGR2HSV)
+        img_hsv[:,:,(1)] = img_hsv[:,:,(1)]*0.5
+        img_bgr = cv2.cvtColor(img_hsv,cv2.COLOR_HSV2BGR)
+        bgr_images.append(img_bgr)
+        bgr_labels.append(label_id)
+
+    index = 0
+    for i in range(len(bgr_images)):
+        if index+int(args.seq_length) <=len(images):
+            split_image = bgr_images[index : index+int(args.seq_length)]
+            split_label = bgr_labels[index : index+int(args.seq_length)]
+        else:
+            break
+        train_data.append((split_image, split_label))  ##split_id = 3
+        index += 30
 ################################################################################################
-        print('movie {}  len(data) = {} '.format(mid, len(data)) )
 
 
 
-    if not os.path.exists('data/seq_length_{}'.format(args.seq_length)):
-            os.mkdir('data/seq_length_{}'.format(args.seq_length))
-
-
-    for i in range(1, 5):  
-        ##評価
-        images = []
-        labels = []
-        val_split = []
-        train_split = []
-
-        for movie_data in data:
-            if movie_data[2] == i:
-                val_split.append((movie_data[0], movie_data[1]))
-            else:
-                train_split.append((movie_data[0], movie_data[1]))
-        # TODO: movieをシャッフル
-
-        with open("data/seq_length_{}/val_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
-            pickle.dump(val_split, f)
-        with open("data/seq_length_{}/train_split_{:1d}.pkl".format(args.seq_length, i), "wb") as f:
-            pickle.dump(train_split, f)
-        print("finish {}".format(i))
+    with open("data/same_frames/train_split_1.pkl", "wb") as f:
+        pickle.dump(train_data, f)
 
 
 
+
+
+
+
+
+
+
+
+    eval_data = []
+    images = []
+    labels = []
+    for file_name, element_name in anno_element_eval.items():
+        label_id = element_names.index(element_name)
+
+        filepath = '/home/akiho/projects/StSqDB/data/dataset/train_all/' + element_name + '/' + file_name
+        oriImg = cv2.imread(filepath)  # B,G,Rの順番
+
+        # BGRをRGBにして表示
+        oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
+
+        # 画像のリサイズ
+        size = (368, 368)
+        img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
+
+        # 画像の前処理
+        img = img.astype(np.float32) / 255.
+
+        # 色情報の標準化
+        color_mean = [0.485, 0.456, 0.406]
+        color_std = [0.229, 0.224, 0.225]
+
+        preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
+
+        for i in range(3):
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
+
+        # （高さ、幅、色）→（色、高さ、幅）
+        img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
+
+        # 画像をTensorに
+        img = torch.from_numpy(img)
+
+        # ミニバッチ化：torch.Size([1, 3, 368, 368])
+        x = img.unsqueeze(0)
+
+        net.eval()
+        predicted_outputs, _ = net(x)
+
+        # 画像をテンソルからNumPyに変化し、サイズを戻します
+        pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
+        heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
+
+        pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+
+        pafs = cv2.resize(
+            pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(
+            heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        
+        _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
+        # resize_img = np.array(result_img.resize((args.img_size, args.img_size)))
+        resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
+        images.append(resize_img)
+        labels.append(label_id)
+
+    index = 0
+    for i in range(len(images)):
+        if index+int(args.seq_length) <=len(images):
+            split_image = images[index : index+int(args.seq_length)]
+            split_label = labels[index : index+int(args.seq_length)]
+        else:
+            break
+        eval_data.append((split_image, split_label))  ##split_id = 3
+        index += 30
+# #######################################################################################################反転
+    fliped_images = []
+    fliped_labels = []
+    for file_name, element_name in anno_element_eval.items():
+        label_id = element_names.index(element_name)
+
+        filepath = '/home/akiho/projects/StSqDB/data/dataset/train_all/' + element_name + '/' + file_name
+        oriImg = cv2.imread(filepath)  # B,G,Rの順番
+
+        # BGRをRGBにして表示
+        oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
+
+        # 画像のリサイズ
+        size = (368, 368)
+        img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
+
+        # 画像の前処理
+        img = img.astype(np.float32) / 255.
+
+        # 色情報の標準化
+        color_mean = [0.485, 0.456, 0.406]
+        color_std = [0.229, 0.224, 0.225]
+
+        preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
+
+        for i in range(3):
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
+
+        # （高さ、幅、色）→（色、高さ、幅）
+        img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
+
+        # 画像をTensorに
+        img = torch.from_numpy(img)
+
+        # ミニバッチ化：torch.Size([1, 3, 368, 368])
+        x = img.unsqueeze(0)
+
+        net.eval()
+        predicted_outputs, _ = net(x)
+
+        # 画像をテンソルからNumPyに変化し、サイズを戻します
+        pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
+        heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
+
+        pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+
+        pafs = cv2.resize(
+            pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(
+            heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        
+        _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
+        resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
+
+        img_fliped = np.array(cv2.flip(resize_img, 1)) 
+        fliped_images.append(img_fliped)
+        fliped_labels.append(label_id)
+
+    index = 0
+    for i in range(len(fliped_images)):
+        if index+int(args.seq_length) <=len(images):
+            split_image = fliped_images[index : index+int(args.seq_length)]
+            split_label = fliped_labels[index : index+int(args.seq_length)]
+        else:
+            break
+        eval_data.append((split_image, split_label))  ##split_id = 3
+        index += 30
+
+ ############################################################################################色補正
+
+    bgr_images = []
+    bgr_labels = []
+    for file_name, element_name in anno_element_eval.items():
+        label_id = element_names.index(element_name)
+
+        filepath = '/home/akiho/projects/StSqDB/data/dataset/train_all/' + element_name + '/' + file_name
+        oriImg = cv2.imread(filepath)  # B,G,Rの順番
+
+        # BGRをRGBにして表示
+        oriImg = cv2.cvtColor(oriImg, cv2.COLOR_BGR2RGB)
+
+        # 画像のリサイズ
+        size = (368, 368)
+        img = cv2.resize(oriImg, size, interpolation=cv2.INTER_CUBIC)
+
+        # 画像の前処理
+        img = img.astype(np.float32) / 255.
+
+        # 色情報の標準化
+        color_mean = [0.485, 0.456, 0.406]
+        color_std = [0.229, 0.224, 0.225]
+
+        preprocessed_img = img.copy()[:, :, ::-1]  # BGR→RGB
+
+        for i in range(3):
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - color_mean[i]
+            preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / color_std[i]
+
+        # （高さ、幅、色）→（色、高さ、幅）
+        img = preprocessed_img.transpose((2, 0, 1)).astype(np.float32)
+
+        # 画像をTensorに
+        img = torch.from_numpy(img)
+
+        # ミニバッチ化：torch.Size([1, 3, 368, 368])
+        x = img.unsqueeze(0)
+
+        net.eval()
+        predicted_outputs, _ = net(x)
+
+        # 画像をテンソルからNumPyに変化し、サイズを戻します
+        pafs = predicted_outputs[0][0].detach().numpy().transpose(1, 2, 0)
+        heatmaps = predicted_outputs[1][0].detach().numpy().transpose(1, 2, 0)
+
+        pafs = cv2.resize(pafs, size, interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(heatmaps, size, interpolation=cv2.INTER_CUBIC)
+
+        pafs = cv2.resize(
+            pafs, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        heatmaps = cv2.resize(
+            heatmaps, (oriImg.shape[1], oriImg.shape[0]), interpolation=cv2.INTER_CUBIC)
+        
+        _, result_img, _, _ = decode_pose(oriImg, heatmaps, pafs)
+        resize_img = cv2.resize(result_img, (args.img_size,args.img_size), interpolation=cv2.INTER_CUBIC)
+        img_hsv = cv2.cvtColor(resize_img,cv2.COLOR_BGR2HSV)
+        img_hsv[:,:,(1)] = img_hsv[:,:,(1)]*0.5
+        img_bgr = cv2.cvtColor(img_hsv,cv2.COLOR_HSV2BGR)
+        bgr_images.append(img_bgr)
+        bgr_labels.append(label_id)
+
+    index = 0
+    for i in range(len(bgr_images)):
+        if index+int(args.seq_length) <=len(images):
+            split_image = bgr_images[index : index+int(args.seq_length)]
+            split_label = bgr_labels[index : index+int(args.seq_length)]
+        else:
+            break
+        eval_data.append((split_image, split_label))  ##split_id = 3
+        index += 30
+
+
+
+    with open("data/same_frames/val_split_1.pkl", "wb") as f:
+        pickle.dump(eval_data, f)
 if __name__ == "__main__":
     main()
