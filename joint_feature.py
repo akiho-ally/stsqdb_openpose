@@ -125,8 +125,8 @@ def main():
             one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19]) ##一人の関節（joint_listのindexが並んでる）
             joint_list = np.delete(joint_list, [2,3,4] , 1)  ##全ての関節の座標のみのリスト
             # TODO : 上半身と下半身で分ける
-            one_person_to_joint_index = one_person_to_joint_index[8:14]  ##下半身
-            # one_person_to_joint_index = np.delete(one_person_to_joint_index, [8,9,10,11,12,13]) ##上半身
+            # one_person_to_joint_index = one_person_to_joint_index[8:14]  ##下半身
+            one_person_to_joint_index = np.delete(one_person_to_joint_index, [8,9,10,11,12,13]) ##上半身
 
             each_coordinates = []
             for i, v in enumerate(one_person_to_joint_index):
@@ -265,8 +265,8 @@ def main():
             one_person_to_joint_index = np.delete(person_to_joint_assoc[0], [18,19]) ##一人の関節（joint_listのindexが並んでる）
             joint_list = np.delete(joint_list, [2,3,4] , 1)  ##全ての関節の座標のみのリスト
             # TODO : 上半身と下半身で分ける
-            one_person_to_joint_index = one_person_to_joint_index[8:14]  ##下半身
-            # one_person_to_joint_index = np.delete(one_person_to_joint_index, [8,9,10,11,12,13]) ##上半身
+            # one_person_to_joint_index = one_person_to_joint_index[8:14]  ##下半身
+            one_person_to_joint_index = np.delete(one_person_to_joint_index, [8,9,10,11,12,13]) ##上半身
 
             each_coordinates = []
             for i, v in enumerate(one_person_to_joint_index):

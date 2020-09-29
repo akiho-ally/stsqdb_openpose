@@ -19,15 +19,15 @@ def eval(model, split, seq_length, bs, n_cpu, disp):
         dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/val_split_{}.pkl'.format(int(seq_length), split),
                         vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                         seq_length=int(seq_length),
-                        # transform=transforms.Compose([ToTensor(),
-                        #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                        transform=transforms.Compose([ToTensor(),
+                                                    Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                         train=False)
     else:
         dataset = StsqDB(data_file='data/same_frames/val_split_1.pkl',
                     vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                     seq_length=int(seq_length),
-                    # transform=transforms.Compose([ToTensor(),
-                    #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                    transform=transforms.Compose([ToTensor(),
+                                                Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                     train=True)
 
     data_loader = DataLoader(dataset,
@@ -134,11 +134,11 @@ if __name__ == '__main__':
         plt.savefig(save_dir + 'coordinates_figure_12_up.png')
 
     else:
-        ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=50000, cmap=plt.get_cmap('Blues'))
+        ax.matshow(confusion_matrix, aspect='auto', vmin=0, vmax=90, cmap=plt.get_cmap('Blues'))
         plt.ylabel('Actual Category')
         plt.yticks(range(13), element_names)
         plt.xlabel('Predicted Category')
         plt.xticks(range(13), element_names,rotation=45)      
 
         save_dir = '/home/akiho/projects/stsqdb_op/'
-        plt.savefig(save_dir + 'coordinates_figure_30_up.png')
+        plt.savefig(save_dir + 'figure_30_op.png')

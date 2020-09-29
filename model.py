@@ -15,15 +15,14 @@ class EventDetector(nn.Module):
         self.device = device
         self.use_no_element = use_no_element
 
-        # TODO : 19~25をコメント
-        # net = MobileNetV2(width_mult=width_mult)
-        # state_dict_mobilenet = torch.load('mobilenet_v2.pth.tar')
-        # if pretrain:
-        #     net.load_state_dict(state_dict_mobilenet,strict=False)
-        #     #net.load_state_dict(state_dict_mobilenet)
+        net = MobileNetV2(width_mult=width_mult)
+        state_dict_mobilenet = torch.load('mobilenet_v2.pth.tar')
+        if pretrain:
+            net.load_state_dict(state_dict_mobilenet,strict=False)
+            #net.load_state_dict(state_dict_mobilenet)
 
-        # self.cnn = nn.Sequential(*list(net.children())[0][:19])
-        self.rnn = nn.LSTM(int(24*width_mult if width_mult > 1.0 else 24),
+        self.cnn = nn.Sequential(*list(net.children())[0][:19])
+        self.rnn = nn.LSTM(int(1280*width_mult if width_mult > 1.0 else 1280),
                            self.lstm_hidden, self.lstm_layers,
                            batch_first=True, bidirectional=bidirectional)
         if self.use_no_element == False:
@@ -50,28 +49,24 @@ class EventDetector(nn.Module):
             
 
     def forward(self, x, lengths=None):
-        # TODO : 55行目追加
-        # batch_size, timesteps, C, H, W = x.size()  ##torch.Size([8, 300, 3, 224, 224])
-        batch_size, timesteps, one_person_coordinates, each_coordinates = x.size() ##torch.Size([8, 300, 18, 2])
+        batch_size, timesteps, C, H, W = x.size()
         self.hidden = self.init_hidden(batch_size)
 
-        # # CNN forward
-        # c_in = x.view(batch_size * timesteps, C, H, W)  ##torch.Size([2400, 3, 224, 224])
-        # c_out = self.cnn(c_in)
-        # c_out = c_out.mean(3).mean(2)  ##torch.Size([2400, 1280])  ##Global average pooling
-        # if self.dropout:
-        #     c_out = self.drop(c_out)
+        # CNN forward
+        c_in = x.view(batch_size * timesteps, C, H, W)
+        c_out = self.cnn(c_in)
+        c_out = c_out.mean(3).mean(2)
+        if self.dropout:
+            c_out = self.drop(c_out)
 
-        # TODO : c.outを座標データに変えるはず
         # LSTM forward
-
-        r_in = x.view(batch_size, timesteps, one_person_coordinates * each_coordinates)  ##torch.Size([8, 300, 1280])  ##torch.Size([8, 300, 36])
-        r_out, states = self.rnn(r_in, self.hidden)   ##r_out:torch.Size([8, 300, 512]),  len(states)=2
-        out = self.lin(r_out)  ##torch.Size([8, 300, 12])
-
+        r_in = c_out.view(batch_size, timesteps, -1)
+        r_out, states = self.rnn(r_in, self.hidden)
+        out = self.lin(r_out)
+        # out.shape => torch.Size([1, 300, 13])
         if self.use_no_element == False:
             out = out.view(batch_size*timesteps, 12)
         else:
             out = out.view(batch_size*timesteps, 13)
-        # out.shape => torch.Size([2400, 13])
+        # out.shape => torch.Size([300, 13])
         return out

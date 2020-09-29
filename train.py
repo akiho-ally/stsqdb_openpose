@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--split', default=1)
     parser.add_argument('--iteration', default=8000)
-    parser.add_argument('--it_save', default=100)
+    parser.add_argument('--it_save', default=10)
     parser.add_argument('--batch_size', default=8)
     parser.add_argument('--seq_length', default=300) 
     parser.add_argument('--use_no_element', action='store_true') 
@@ -70,15 +70,15 @@ if __name__ == '__main__':
         dataset = StsqDB(data_file='data/coordinates/no_ele/seq_length_{}/train_split_{}.pkl'.format(args.seq_length, args.split),
                         vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                         seq_length=int(seq_length),
-                        # transform=transforms.Compose([ToTensor(),
-                        #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                        transform=transforms.Compose([ToTensor(),
+                                                    Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                         train=True)
     else:
         dataset = StsqDB(data_file='data/same_frames/train_split_1.pkl',
                     vid_dir='/home/akiho/projects/StSqDB/data/videos_40/',
                     seq_length=int(seq_length),
-                    # transform=transforms.Compose([ToTensor(),
-                    #                             Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+                    transform=transforms.Compose([ToTensor(),
+                                                Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
                     train=True)
     print('dataloader.py, class StsqDB()')
     # dataset.__len__() : 1050
